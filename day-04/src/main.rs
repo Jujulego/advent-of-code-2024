@@ -17,7 +17,7 @@ fn get_letter<'a>(grid: &'a [Vec<char>], coord: &Point2<i32>) -> Option<&'a char
         .and_then(|row| row.get(coord.x as usize))
 }
 
-fn extract_word(grid: &[Vec<char>], coord: &Point2<i32>, direction: &Vector2<i32>) -> Vec<char> {
+fn extract_word(grid: &[Vec<char>], coord: &Point2<i32>, direction: &Vector2<i32>) -> String {
     (0..3)
         .map(move |i| coord + (i + 1) * direction)
         .filter_map(|coord| get_letter(grid, &coord))
@@ -56,7 +56,7 @@ fn main() {
 
             part01 += directions.iter()
                 .map(|dir| extract_word(&grid, &pt, dir))
-                .filter(|word| *word == vec!['M', 'A', 'S'])
+                .filter(|word| *word == "MAS")
                 .count();
         }
 
