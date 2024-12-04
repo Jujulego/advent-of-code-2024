@@ -36,13 +36,20 @@ fn main() {
       vector![0, -1],
       vector![1, -1]
     ];
+    let x_moves = [
+      vector![1, 1],
+      vector![-1, 1],
+      vector![-1, -1],
+      vector![1, -1]
+    ];
 
     let grid = read_lines!("day-04/input.txt")
         .map(|line| line.chars().collect::<Vec<_>>())
         .collect::<Vec<_>>();
 
     let mut part01 = 0;
-    
+    let mut part02 = 0;
+
     for (y, row) in grid.iter().enumerate() {
         for (x, _) in row.iter().enumerate().filter(|(_, &letter)| letter == 'X') {
             let pt = point![x as i32, y as i32];
@@ -52,7 +59,24 @@ fn main() {
                 .filter(|word| *word == vec!['M', 'A', 'S'])
                 .count();
         }
+
+        for (x, _) in row.iter().enumerate().filter(|(_, &letter)| letter == 'A') {
+            let pt = point![x as i32, y as i32];
+
+            let x_word = x_moves.iter()
+                .filter_map(|dir| get_letter(&grid, &(pt + dir)))
+                .copied()
+                .collect::<String>();
+
+            match x_word.as_str() {
+                "MMSS" | "SMMS" | "MSSM" | "SSMM" => {
+                    part02 += 1;
+                }
+                _ => {}
+            }
+        }
     }
-    
+
     println!("part 01: {}", part01);
+    println!("part 02: {}", part02);
 }
