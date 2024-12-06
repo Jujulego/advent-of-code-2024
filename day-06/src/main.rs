@@ -1,4 +1,5 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
+use std::iter::FusedIterator;
 use nalgebra::{point, vector, Point2, Vector2};
 
 macro_rules! read_lines {
@@ -30,12 +31,92 @@ fn turn_right(dir: Vector2<i32>) -> Vector2<i32> {
     }
 }
 
-fn is_inside(map: &[Vec<char>], point: &Point2<i32>) -> bool {
-    (0..map.len() as i32).contains(&point.y) && (0..map[0].len() as i32).contains(&point.x)
+/////////////////////////////////////////////////////////////////////
+// GuardMap
+/////////////////////////////////////////////////////////////////////
+trait GuardMap {
+    fn look_at(&self, point: &Point2<i32>) -> Option<&char>;
 }
 
-fn look_at<'a>(map: &'a [Vec<char>], point: &Point2<i32>) -> Option<&'a char> {
-    map.get(point.y as usize).and_then(|row| row.get(point.x as usize))
+/////////////////////////////////////////////////////////////////////
+// InputMap
+/////////////////////////////////////////////////////////////////////
+type InputMap = Vec<Vec<char>>;
+
+impl GuardMap for InputMap {
+    fn look_at(&self, point: &Point2<i32>) -> Option<&char> {
+        self.get(point.y as usize).and_then(|row| row.get(point.x as usize))
+    }
+}
+
+/////////////////////////////////////////////////////////////////////
+// CorrectedMap
+/////////////////////////////////////////////////////////////////////
+struct CorrectedMap<'m> {
+    map: &'m InputMap,
+    object: Point2<i32>,
+}
+
+impl<'m> GuardMap for CorrectedMap<'m> {
+    fn look_at(&self, point: &Point2<i32>) -> Option<&char> {
+        if point == &self.object {
+            return Some(&'#');
+        }
+
+        self.map.look_at(point)
+    }
+}
+
+/////////////////////////////////////////////////////////////////////
+// Guard
+/////////////////////////////////////////////////////////////////////
+struct Guard<'a, M: GuardMap> {
+    map: &'a M,
+    position: Point2<i32>,
+    direction: Vector2<i32>,
+}
+
+impl<'a, M: GuardMap> Iterator for Guard<'a, M> {
+    type Item = (Point2<i32>, Vector2<i32>);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            let next = self.position + self.direction;
+
+            match self.map.look_at(&next) {
+                Some(&'#') => self.direction = turn_right(self.direction),
+                Some(_) => {
+                    self.position = next;
+                    return Some((next, self.direction));
+                },
+                None => return None,
+            }
+        }
+    }
+}
+
+impl<'a, M: GuardMap> FusedIterator for Guard<'a, M> {}
+
+/////////////////////////////////////////////////////////////////////
+// main
+/////////////////////////////////////////////////////////////////////
+fn patrol<M: GuardMap>(map: &M, start: Point2<i32>) -> Option<HashMap<Point2<i32>, HashSet<Vector2<i32>>>> {
+    let mut visited = HashMap::new();
+    visited.insert(start, HashSet::from([UP]));
+
+    let guard = Guard { map, position: start, direction: UP };
+
+    for (pos, dir) in guard {
+        let dirs = visited.entry(pos).or_default();
+
+        if dirs.contains(&dir) {
+            return None;
+        } else {
+            dirs.insert(dir);
+        }
+    }
+
+    Some(visited)
 }
 
 fn main() {
@@ -45,30 +126,28 @@ fn main() {
         .collect();
 
     // Search start
-    let mut position = point![0, 0];
+    let mut start = point![0, 0];
 
     for (y, row) in map.iter().enumerate() {
         for (x, c) in row.iter().enumerate() {
             if *c == '^' {
-                position = point![x as i32, y as i32];
+                start = point![x as i32, y as i32];
             }
         }
     }
 
-    // Run !
-    let mut direction = UP;
-    let mut visited = HashSet::new();
-
-    while is_inside(&map, &position) {
-        let next = position + direction;
-        visited.insert(position);
-
-        if look_at(&map, &next) == Some(&'#') {
-            direction = turn_right(direction);
-        } else {
-            position = next;
-        }
-    }
-
+    // Part 1
+    let visited = patrol(&map, start).unwrap();
     println!("part 01: {}", visited.len());
+
+    // Part 2
+    let part2 = visited.keys()
+        .filter(|&pos| pos != &start)
+        .filter(|&pos| {
+            let map = CorrectedMap { map: &map, object: *pos };
+            patrol(&map, start).is_none()
+        })
+        .count();
+
+    println!("part 02: {part2}");
 }
