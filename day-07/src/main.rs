@@ -10,18 +10,22 @@ macro_rules! read_lines {
     };
 }
 
+fn concatenate(a: u64, b: u64) -> u64 {
+    a * (10u64.pow(b.ilog10() + 1)) + b
+}
+
 fn is_calibrated(terms: &[u64], result: u64) -> bool {
     let mut queue = VecDeque::from([(terms[0], 1)]);
 
     while !queue.is_empty() {
         let (val, idx) = queue.pop_front().unwrap();
 
-        if let Some(term) = terms.get(idx) {
-            for res in [val + term, val * term] {
+        if let Some(&term) = terms.get(idx) {
+            for res in [val + term, val * term, concatenate(val, term)] {
                 if res > result {
                     continue;
                 }
-                
+
                 queue.push_back((res, idx + 1));
             }
         } else if val == result { // Found !
@@ -42,11 +46,11 @@ fn main() {
             .split_whitespace()
             .map(|term| term.parse::<u64>().unwrap())
             .collect::<Vec<_>>();
-        
+
         if is_calibrated(&terms, result) {
             part01 += result;
         }
     }
-    
+
     println!("part 01: {part01}");
 }
