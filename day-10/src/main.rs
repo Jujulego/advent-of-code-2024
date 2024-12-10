@@ -20,15 +20,17 @@ fn get_height<'a>(map: &'a [Vec<u8>], point: &Point2<i32>) -> Option<&'a u8> {
     map.get(point.y as usize)?.get(point.x as usize)
 }
 
-fn reachable_pics(map: &[Vec<u8>], start: &Point2<i32>) -> usize {
+fn reachable_pics(map: &[Vec<u8>], start: &Point2<i32>) -> (usize, usize) {
     let mut stack = VecDeque::from([*start]);
     let mut results = HashSet::new();
+    let mut trails = 0;
 
     while !stack.is_empty() {
         let current = stack.pop_front().unwrap();
         let height = get_height(map, &current).unwrap();
 
         if height == &9 {
+            trails += 1;
             results.insert(current);
         } else {
             for step in &STEPS {
@@ -43,7 +45,7 @@ fn reachable_pics(map: &[Vec<u8>], start: &Point2<i32>) -> usize {
         }
     }
 
-    results.len()
+    (results.len(), trails)
 }
 
 fn main() {
@@ -66,9 +68,16 @@ fn main() {
     }
 
     // Part 1
-    let part01: usize = starts.iter()
-        .map(|start| reachable_pics(&map, start))
-        .sum();
-
+    let mut part01 = 0;
+    let mut part02 = 0;
+    
+    for start in starts {
+        let (a, b) = reachable_pics(&map, &start);
+        
+        part01 += a;
+        part02 += b;
+    }
+    
     println!("part 01: {part01}");
+    println!("part 02: {part02}");
 }
