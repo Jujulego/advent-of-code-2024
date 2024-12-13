@@ -1,4 +1,4 @@
-use std::cmp::{max, min, Ordering, Reverse};
+use std::cmp::{min, Ordering, Reverse};
 use std::collections::{BinaryHeap, HashSet};
 use std::time::Instant;
 use nalgebra::{point, vector, Point2, Vector2};
@@ -149,6 +149,29 @@ fn search_path_v2(machine: &ClawMachine) -> Option<u64> {
     None
 }
 
+fn search_path_v3(machine: &ClawMachine) -> Option<u64> {
+    let ka = (machine.a_button.y as f64) / (machine.a_button.x as f64);
+    let kb = (machine.b_button.y as f64) / (machine.b_button.x as f64);
+
+    let ix = (-ka * (machine.prize.x as f64) + (machine.prize.y as f64)) / (kb - ka);
+    let ix = ix.round() as u64;
+
+    let a_cnt = ix.abs_diff(machine.prize.x) / machine.a_button.x;
+    let b_cnt = ix / machine.b_button.x;
+
+    let end = (a_cnt * machine.a_button) + (b_cnt * machine.b_button);
+    let end: Point2<u64> = end.into();
+
+
+    if end == machine.prize {
+        println!("{a_cnt} + {b_cnt} => {:?} match!", end);
+        Some(a_cnt * 3 + b_cnt)
+    } else {
+        println!("{a_cnt} + {b_cnt} => {:?} fail!", end);
+        None
+    }
+}
+
 fn main() {
     let mut lines = read_lines!("day-13/input.txt");
     let mut machines = Vec::new();
@@ -167,7 +190,7 @@ fn main() {
 
     let now = Instant::now();
     let part01 = machines.iter()
-        .filter_map(search_path_v2)
+        .filter_map(search_path_v3)
         .sum::<u64>();
 
     println!("part 01: {} ({:.2?})", part01, now.elapsed());
@@ -178,7 +201,7 @@ fn main() {
             prize: point![10000000000000 + machine.prize.x, 10000000000000 + machine.prize.y],
             ..machine
         })
-        .filter_map(|m| search_path_v2(&m))
+        .filter_map(|m| search_path_v3(&m))
         .sum::<u64>();
 
     println!("part 02: {} ({:.2?})", part02, now.elapsed());
