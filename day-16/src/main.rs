@@ -1,7 +1,7 @@
 use std::cmp::Reverse;
 use nalgebra::{point, vector, Point2, Vector2};
 use owo_colors::OwoColorize;
-use std::collections::{BinaryHeap, HashMap, HashSet};
+use std::collections::{BinaryHeap, HashMap, HashSet, VecDeque};
 use std::time::Instant;
 
 macro_rules! read_lines {
@@ -41,10 +41,10 @@ impl Direction {
 
     fn as_vector(&self) -> Vector2<i32> {
         match self {
-            &Direction::North => vector![0, -1],
-            &Direction::East => vector![1, 0],
-            &Direction::South => vector![0, 1],
-            &Direction::West => vector![-1, 0],
+            Direction::North => vector![0, -1],
+            Direction::East => vector![1, 0],
+            Direction::South => vector![0, 1],
+            Direction::West => vector![-1, 0],
         }
     }
 }
@@ -53,20 +53,27 @@ impl Direction {
 struct Reindeer {
     pos: Point2<i32>,
     dir: Direction,
-    score: i32,
+    turns: i32,
+    moves: i32,
+}
+
+impl Reindeer {
+    fn score(&self) -> i32 {
+        self.turns * 1000 + self.moves
+    }
 }
 
 impl Eq for Reindeer {}
 
 impl Ord for Reindeer {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.score.cmp(&other.score)
+        self.score().cmp(&other.score())
     }
 }
 
 impl PartialEq for Reindeer {
     fn eq(&self, other: &Self) -> bool {
-        self.score == other.score
+        self.score() == other.score()
     }
 }
 
@@ -90,6 +97,27 @@ fn print_map(walls: &HashSet<Point2<i32>>, start: &Point2<i32>, end: &Point2<i32
                 print!("S");
             } else if point == *end {
                 print!("E");
+            } else {
+                print!("{}", ".".bright_black());
+            }
+        }
+
+        println!();
+    }
+}
+
+fn print_map_with_paths(walls: &HashSet<Point2<i32>>, paths: &HashSet<Point2<i32>>) {
+    let max_x = walls.iter().map(|p| p.x).max().unwrap();
+    let max_y = walls.iter().map(|p| p.y).max().unwrap();
+
+    for y in 0..=max_y {
+        for x in 0..=max_x {
+            let point = point![x, y];
+
+            if walls.contains(&point) {
+                print!("#");
+            } else if paths.contains(&point) {
+                print!("{}", "O".yellow().bold());
             } else {
                 print!("{}", ".".bright_black());
             }
@@ -124,16 +152,16 @@ fn main() {
     // Part 01
     let now = Instant::now();
 
-    let mut mins = HashMap::new();
+    let mut mins: HashMap<Point2<i32>, Reindeer> = HashMap::new();
     let mut heap = BinaryHeap::from([
-        Reverse(Reindeer { pos: start, dir: Direction::East, score: 0 })
+        Reverse(Reindeer { pos: start, dir: Direction::East, moves: 0, turns: 0 }),
     ]);
 
     while let Some(Reverse(reindeer)) = heap.pop() {
         match mins.get(&reindeer.pos) {
-            Some(v) if *v <= reindeer.score => continue,
+            Some(v) if v.score() <= reindeer.score() => continue,
             _ => {
-                mins.insert(reindeer.pos, reindeer.score);
+                mins.insert(reindeer.pos, reindeer);
             }
         }
 
@@ -142,9 +170,9 @@ fn main() {
         }
 
         let nexts = [
-            Reindeer { pos: reindeer.pos + reindeer.dir.as_vector(), dir: reindeer.dir, score: reindeer.score + 1 },
-            Reindeer { pos: reindeer.pos + reindeer.dir.turn_left().as_vector(), dir: reindeer.dir.turn_left(), score: reindeer.score + 1001 },
-            Reindeer { pos: reindeer.pos + reindeer.dir.turn_right().as_vector(), dir: reindeer.dir.turn_right(), score: reindeer.score + 1001 },
+            Reindeer { pos: reindeer.pos + reindeer.dir.as_vector(), dir: reindeer.dir, turns: reindeer.turns, moves: reindeer.moves + 1 },
+            Reindeer { pos: reindeer.pos + reindeer.dir.turn_left().as_vector(), dir: reindeer.dir.turn_left(), turns: reindeer.turns + 1, moves: reindeer.moves + 1 },
+            Reindeer { pos: reindeer.pos + reindeer.dir.turn_right().as_vector(), dir: reindeer.dir.turn_right(), turns: reindeer.turns + 1, moves: reindeer.moves + 1 },
         ];
 
         for next in nexts {
@@ -156,5 +184,56 @@ fn main() {
         }
     }
 
-    println!("part 01: {} ({:.2?})", mins.get(&end).unwrap(), now.elapsed());
+    println!("part 01: {} ({:.2?})", mins.get(&end).unwrap().score(), now.elapsed());
+
+    // Part 02
+    let mut paths = HashSet::new();
+    let mut stack = VecDeque::from([end]);
+
+    while let Some(pt) = stack.pop_back() {
+        if paths.contains(&pt) {
+            continue;
+        }
+
+        paths.insert(pt);
+
+        let reindeer = mins.get(&pt).unwrap();
+
+        for dir in [Direction::North, Direction::East, Direction::South, Direction::West] {
+            let prev = pt - dir.as_vector();
+            let next = pt + dir.as_vector();
+
+            if walls.contains(&prev) {
+                continue;
+            }
+
+            // println!("{:?}({reindeer:?}) => {:?}({:?})", pt, prev, mins.get(&prev));
+
+            if let Some(p) = mins.get(&prev) {
+                if p.moves + 1 == reindeer.moves && p.turns == reindeer.turns {
+                    stack.push_front(prev);
+                    continue;
+                }
+
+                if p.moves + 1 == reindeer.moves && p.turns + 1 == reindeer.turns {
+                    stack.push_front(prev);
+                    continue;
+                }
+
+                if !paths.contains(&next) {
+                    continue;
+                }
+
+                if let Some(n) = mins.get(&next) {
+                    if p.moves + 2 == n.moves && p.turns == n.turns {
+                        stack.push_front(prev);
+                        continue;
+                    }
+                }
+            }
+        }
+    }
+
+    // print_map_with_paths(&walls, &paths);
+    println!("part 02: {} ({:.2?})", paths.len(), now.elapsed());
 }
