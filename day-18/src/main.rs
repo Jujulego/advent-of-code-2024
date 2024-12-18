@@ -61,6 +61,12 @@ impl PartialOrd for Node {
 
 fn print_map(nodes: &HashMap<Point2<i32>, Rc<RefCell<Node>>>) {
     for y in MEMORY_Y_LIMITS {
+        if y == 0 {
+            print!("\u{2500}");
+        } else {
+            print!(" ");
+        }
+
         for x in MEMORY_X_LIMITS {
             let pt = point![x, y];
 
@@ -71,6 +77,10 @@ fn print_map(nodes: &HashMap<Point2<i32>, Rc<RefCell<Node>>>) {
                         n.borrow().is_previous_of(&node.borrow()) || node.borrow().is_previous_of(&n.borrow())
                     ));
 
+                if pt == point![0, 0] {
+                    dirs[3] = true;
+                }
+
                 if pt == END {
                     dirs[1] = true;
                 }
@@ -79,7 +89,7 @@ fn print_map(nodes: &HashMap<Point2<i32>, Rc<RefCell<Node>>>) {
                 let color = if cost == u32::MAX { Rgb(255, 0, 0) } else { Rgb(0, 255 - ((cost * 5) % 175) as u8, 0) };
 
                 match dirs {
-                    [false, false, false, false] => print!("{}", ".".color(color)),
+                    [false, false, false, false] => print!("{}", "\u{25aa}".color(color)),
                     [false, false, false, true] => print!("{}", "\u{2574}".color(color)),
                     [false, false, true, false] => print!("{}", "\u{2577}".color(color)),
                     [false, true, false, false] => print!("{}", "\u{2576}".color(color)),
@@ -97,8 +107,33 @@ fn print_map(nodes: &HashMap<Point2<i32>, Rc<RefCell<Node>>>) {
                     [true, true, true, true] => print!("{}", "\u{253c}".color(color)),
                 }
             } else {
-                print!("{}", "\u{2588}".bright_black());
+                let dirs = STEPS
+                    .map(|s| pt + s)
+                    .map(|p| nodes.get(&p).is_none());
+
+                match dirs {
+                    [false, false, false, false] => print!("{}", "\u{25aa}".bright_black()),
+                    [false, false, false, true] => print!("{}", "\u{2578}".bright_black()),
+                    [false, false, true, false] => print!("{}", "\u{257b}".bright_black()),
+                    [false, true, false, false] => print!("{}", "\u{257a}".bright_black()),
+                    [true, false, false, false] => print!("{}", "\u{2579}".bright_black()),
+                    [false, false, true, true] => print!("{}", "\u{2513}".bright_black()),
+                    [false, true, false, true] => print!("{}", "\u{2501}".bright_black()),
+                    [true, false, false, true] => print!("{}", "\u{251b}".bright_black()),
+                    [false, true, true, false] => print!("{}", "\u{250f}".bright_black()),
+                    [true, false, true, false] => print!("{}", "\u{2503}".bright_black()),
+                    [true, true, false, false] => print!("{}", "\u{2517}".bright_black()),
+                    [false, true, true, true] => print!("{}", "\u{2533}".bright_black()),
+                    [true, false, true, true] => print!("{}", "\u{252b}".bright_black()),
+                    [true, true, false, true] => print!("{}", "\u{253b}".bright_black()),
+                    [true, true, true, false] => print!("{}", "\u{2523}".bright_black()),
+                    [true, true, true, true] => print!("{}", "\u{254b}".bright_black()),
+                }
             }
+        }
+
+        if y == *MEMORY_Y_LIMITS.end() {
+            print!("\u{2500}");
         }
 
         println!();
