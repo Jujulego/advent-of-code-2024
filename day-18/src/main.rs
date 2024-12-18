@@ -89,7 +89,7 @@ fn print_map(nodes: &HashMap<Point2<i32>, Rc<RefCell<Node>>>) {
                 let color = if cost == u32::MAX { Rgb(255, 0, 0) } else { Rgb(0, 255 - ((cost * 5) % 175) as u8, 0) };
 
                 match dirs {
-                    [false, false, false, false] => print!("{}", "\u{25aa}".color(color)),
+                    [false, false, false, false] => print!(" "),
                     [false, false, false, true] => print!("{}", "\u{2574}".color(color)),
                     [false, false, true, false] => print!("{}", "\u{2577}".color(color)),
                     [false, true, false, false] => print!("{}", "\u{2576}".color(color)),
@@ -112,22 +112,22 @@ fn print_map(nodes: &HashMap<Point2<i32>, Rc<RefCell<Node>>>) {
                     .map(|p| nodes.get(&p).is_none());
 
                 match dirs {
-                    [false, false, false, false] => print!("{}", "\u{25aa}".bright_black()),
-                    [false, false, false, true] => print!("{}", "\u{2578}".bright_black()),
-                    [false, false, true, false] => print!("{}", "\u{257b}".bright_black()),
-                    [false, true, false, false] => print!("{}", "\u{257a}".bright_black()),
-                    [true, false, false, false] => print!("{}", "\u{2579}".bright_black()),
-                    [false, false, true, true] => print!("{}", "\u{2513}".bright_black()),
-                    [false, true, false, true] => print!("{}", "\u{2501}".bright_black()),
-                    [true, false, false, true] => print!("{}", "\u{251b}".bright_black()),
-                    [false, true, true, false] => print!("{}", "\u{250f}".bright_black()),
-                    [true, false, true, false] => print!("{}", "\u{2503}".bright_black()),
-                    [true, true, false, false] => print!("{}", "\u{2517}".bright_black()),
-                    [false, true, true, true] => print!("{}", "\u{2533}".bright_black()),
-                    [true, false, true, true] => print!("{}", "\u{252b}".bright_black()),
-                    [true, true, false, true] => print!("{}", "\u{253b}".bright_black()),
-                    [true, true, true, false] => print!("{}", "\u{2523}".bright_black()),
-                    [true, true, true, true] => print!("{}", "\u{254b}".bright_black()),
+                    [false, false, false, false] => print!("{}", "\u{25aa}".bright_black().dimmed()),
+                    [false, false, false, true] => print!("{}", "\u{2578}".bright_black().dimmed()),
+                    [false, false, true, false] => print!("{}", "\u{257b}".bright_black().dimmed()),
+                    [false, true, false, false] => print!("{}", "\u{257a}".bright_black().dimmed()),
+                    [true, false, false, false] => print!("{}", "\u{2579}".bright_black().dimmed()),
+                    [false, false, true, true] => print!("{}", "\u{2513}".bright_black().dimmed()),
+                    [false, true, false, true] => print!("{}", "\u{2501}".bright_black().dimmed()),
+                    [true, false, false, true] => print!("{}", "\u{251b}".bright_black().dimmed()),
+                    [false, true, true, false] => print!("{}", "\u{250f}".bright_black().dimmed()),
+                    [true, false, true, false] => print!("{}", "\u{2503}".bright_black().dimmed()),
+                    [true, true, false, false] => print!("{}", "\u{2517}".bright_black().dimmed()),
+                    [false, true, true, true] => print!("{}", "\u{2533}".bright_black().dimmed()),
+                    [true, false, true, true] => print!("{}", "\u{252b}".bright_black().dimmed()),
+                    [true, true, false, true] => print!("{}", "\u{253b}".bright_black().dimmed()),
+                    [true, true, true, false] => print!("{}", "\u{2523}".bright_black().dimmed()),
+                    [true, true, true, true] => print!("{}", "\u{254b}".bright_black().dimmed()),
                 }
             }
         }
@@ -233,6 +233,10 @@ fn main() {
 
                 // Update current next nodes
                 if node.borrow().is_previous_of(&next.borrow()) {
+                    if next.borrow().cost == node.borrow().cost.saturating_add(1) {
+                        continue;
+                    }
+
                     if node.borrow().cost == u32::MAX {
                         next.borrow_mut().cost = u32::MAX;
                         next.borrow_mut().previous = None;
@@ -255,7 +259,7 @@ fn main() {
         }
 
         // Debug
-        if idx % 10 == 0 {
+        if idx % 100 == 0 {
             print!("\x1b[{}A", MEMORY_Y_LIMITS.end() + 2);
             print_map(&nodes);
             println!("\x1b[KBit #{idx} ({},{}) corrupted !", bit.x, bit.y);
