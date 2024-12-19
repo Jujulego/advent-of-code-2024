@@ -13,7 +13,7 @@ fn is_possible(design: &str, patterns: &HashMap<char, Vec<String>>) -> bool {
     let mut marks = HashSet::new();
 
     while let Some(left) = stack.pop_front() {
-        println!("left \x1b[90m{}\x1b[m{left}\x1b[1A", &design[..design.len() - left.len()]);
+        //println!("left \x1b[90m{}\x1b[m{left}\x1b[1A", &design[..design.len() - left.len()]);
 
         if !marks.insert(left) {
             continue;
@@ -26,13 +26,33 @@ fn is_possible(design: &str, patterns: &HashMap<char, Vec<String>>) -> bool {
                 }
             }
         } else {
-            println!("\x1b[32mok\x1b[m   {design}");
+            //println!("\x1b[32mok\x1b[m   {design}");
             return true;
         }
     }
 
-    println!("\x1b[31mfail\x1b[m {design}");
+    //println!("\x1b[31mfail\x1b[m {design}");
     false
+}
+
+fn possibilities(left: &str, patterns: &HashMap<char, Vec<String>>, cache: &mut HashMap<String, u64>) -> u64 {
+    if let Some(cached) = cache.get(left) {
+        *cached
+    } else if let Some(first) = left.chars().next() {
+        let mut cnt = 0;
+        
+        for pattern in patterns.get(&first).unwrap_or(&Vec::new()) {
+            if left.starts_with(pattern) {
+                cnt += possibilities(&left[pattern.len()..], patterns, cache);
+            }
+        }
+        
+        cache.insert(left.to_string(), cnt);
+        
+        cnt
+    } else {
+        1
+    }
 }
 
 fn main() {
@@ -59,10 +79,17 @@ fn main() {
     let designs = lines.collect::<Vec<_>>();
 
     // Part 1
-    let part01 = designs
-        .iter()
+    let part01 = designs.iter()
         .filter(|design| is_possible(design, &patterns))
         .count();
 
     println!("part01: {}", part01);
+    
+    // Part 2
+    let mut cache = HashMap::new();
+    let part02: u64 = designs.iter()
+        .map(|design| possibilities(design, &patterns, &mut cache))
+        .sum();
+    
+    println!("part02: {}", part02);
 }
