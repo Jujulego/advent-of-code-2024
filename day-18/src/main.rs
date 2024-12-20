@@ -3,7 +3,7 @@ use owo_colors::DynColors::Rgb;
 use owo_colors::OwoColorize;
 use std::cell::RefCell;
 use std::cmp::Reverse;
-use std::collections::{BinaryHeap, HashMap, VecDeque};
+use std::collections::{BinaryHeap, HashMap, HashSet, VecDeque};
 use std::ops::RangeInclusive;
 use std::rc::Rc;
 
@@ -60,6 +60,14 @@ impl PartialOrd for Node {
 }
 
 fn print_map(nodes: &HashMap<Point2<i32>, Rc<RefCell<Node>>>) {
+    let mut path = HashSet::from([point![0, 0], END]);
+    let mut pos = point![0, 0];
+
+    while let Some(prev) = nodes.get(&pos).and_then(|n| n.borrow().previous.clone()) {
+        pos = prev.borrow().point;
+        path.insert(pos);
+    }
+
     for y in MEMORY_Y_LIMITS {
         if y == 0 {
             print!("\u{2500}");
@@ -86,7 +94,11 @@ fn print_map(nodes: &HashMap<Point2<i32>, Rc<RefCell<Node>>>) {
                 }
 
                 let cost = node.borrow().cost;
-                let color = if cost == u32::MAX { Rgb(255, 0, 0) } else { Rgb(0, 255 - ((cost * 5) % 175) as u8, 0) };
+                let color = match (cost, path.contains(&pt)) {
+                    (u32::MAX, _) => Rgb(255, 0, 0),
+                    (_, false) => Rgb(68, 68, 68),
+                    (_, true) => Rgb(0, 175, 0)
+                };
 
                 match dirs {
                     [false, false, false, false] => print!(" "),
@@ -112,22 +124,22 @@ fn print_map(nodes: &HashMap<Point2<i32>, Rc<RefCell<Node>>>) {
                     .map(|p| nodes.get(&p).is_none());
 
                 match dirs {
-                    [false, false, false, false] => print!("{}", "\u{25aa}".bright_black().dimmed()),
-                    [false, false, false, true] => print!("{}", "\u{2578}".bright_black().dimmed()),
-                    [false, false, true, false] => print!("{}", "\u{257b}".bright_black().dimmed()),
-                    [false, true, false, false] => print!("{}", "\u{257a}".bright_black().dimmed()),
-                    [true, false, false, false] => print!("{}", "\u{2579}".bright_black().dimmed()),
-                    [false, false, true, true] => print!("{}", "\u{2513}".bright_black().dimmed()),
-                    [false, true, false, true] => print!("{}", "\u{2501}".bright_black().dimmed()),
-                    [true, false, false, true] => print!("{}", "\u{251b}".bright_black().dimmed()),
-                    [false, true, true, false] => print!("{}", "\u{250f}".bright_black().dimmed()),
-                    [true, false, true, false] => print!("{}", "\u{2503}".bright_black().dimmed()),
-                    [true, true, false, false] => print!("{}", "\u{2517}".bright_black().dimmed()),
-                    [false, true, true, true] => print!("{}", "\u{2533}".bright_black().dimmed()),
-                    [true, false, true, true] => print!("{}", "\u{252b}".bright_black().dimmed()),
-                    [true, true, false, true] => print!("{}", "\u{253b}".bright_black().dimmed()),
-                    [true, true, true, false] => print!("{}", "\u{2523}".bright_black().dimmed()),
-                    [true, true, true, true] => print!("{}", "\u{254b}".bright_black().dimmed()),
+                    [false, false, false, false] => print!("\u{25aa}"),
+                    [false, false, false, true] => print!("\u{2578}"),
+                    [false, false, true, false] => print!("\u{257b}"),
+                    [false, true, false, false] => print!("\u{257a}"),
+                    [true, false, false, false] => print!("\u{2579}"),
+                    [false, false, true, true] => print!("\u{2513}"),
+                    [false, true, false, true] => print!("\u{2501}"),
+                    [true, false, false, true] => print!("\u{251b}"),
+                    [false, true, true, false] => print!("\u{250f}"),
+                    [true, false, true, false] => print!("\u{2503}"),
+                    [true, true, false, false] => print!("\u{2517}"),
+                    [false, true, true, true] => print!("\u{2533}"),
+                    [true, false, true, true] => print!("\u{252b}"),
+                    [true, true, false, true] => print!("\u{253b}"),
+                    [true, true, true, false] => print!("\u{2523}"),
+                    [true, true, true, true] => print!("\u{254b}"),
                 }
             }
         }
@@ -259,7 +271,7 @@ fn main() {
         }
 
         // Debug
-        if idx % 100 == 0 {
+        if idx % 10 == 0 {
             print!("\x1b[{}A", MEMORY_Y_LIMITS.end() + 2);
             print_map(&nodes);
             println!("\x1b[KBit #{idx} ({},{}) corrupted !", bit.x, bit.y);
