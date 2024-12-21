@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use nalgebra::{point, vector, Point2};
 
 macro_rules! read_lines {
@@ -109,7 +110,13 @@ fn path_includes(path: &str, mut pos: Point2<i32>, gap: Point2<i32>) -> bool {
     false
 }
 
-fn code_cost(code: &str, keypads: &[&Box<dyn Keypad>]) -> usize {
+fn code_cost(code: &str, keypads: &[&Box<dyn Keypad>], cache: &mut HashMap<(String, usize), usize>) -> usize {
+    let key = (code.to_string(), keypads.len());
+    
+    if let Some(result) = cache.get(&key) {
+        return *result;
+    }
+    
     if let Some(keypad) = keypads.first() {
         let mut position = keypad.start();
         let mut cost = 0;
@@ -120,12 +127,14 @@ fn code_cost(code: &str, keypads: &[&Box<dyn Keypad>]) -> usize {
 
             cost += paths.iter()
                 .filter(|path| !path_includes(path, position, keypad.gap()))
-                .map(|path| code_cost(path, &keypads[1..]))
+                .map(|path| code_cost(path, &keypads[1..], cache))
                 .min().unwrap();
 
             position = end;
         }
 
+        cache.insert(key, cost);
+        
         cost
     } else {
         code.len()
@@ -135,16 +144,38 @@ fn code_cost(code: &str, keypads: &[&Box<dyn Keypad>]) -> usize {
 fn main() {
     let door_keypad: Box<dyn Keypad> = Box::new(NumericKeypad {});
     let robot_keypad: Box<dyn Keypad> = Box::new(DirectionalKeypad {});
+    let codes: Vec<_> = read_lines!("day-21/input.txt").collect();
+    
+    // Part 01
     let mut part01 = 0;
+    let mut cache = HashMap::new();
 
-    for line in read_lines!("day-21/input.txt") {
-        let val = line[..3].parse::<i32>().unwrap();
-        let cost = code_cost(&line, &[&door_keypad, &robot_keypad, &robot_keypad]) as i32;
+    for code in &codes {
+        let val = code[..3].parse::<i32>().unwrap();
+        let cost = code_cost(code, &[&door_keypad, &robot_keypad, &robot_keypad], &mut cache) as i32;
 
         println!("{cost} * {val}");
 
         part01 += val * cost;
     }
 
-    println!("{}", part01);
+    println!("part 01: {}", part01);
+    
+    // Part 02
+    let mut part02 = 0;
+
+    for code in &codes {
+        let val = code[..3].parse::<usize>().unwrap();
+        let cost = code_cost(
+            code,
+            &[&door_keypad, &robot_keypad, &robot_keypad, &robot_keypad, &robot_keypad, &robot_keypad, &robot_keypad, &robot_keypad, &robot_keypad, &robot_keypad, &robot_keypad, &robot_keypad, &robot_keypad, &robot_keypad, &robot_keypad, &robot_keypad, &robot_keypad, &robot_keypad, &robot_keypad, &robot_keypad, &robot_keypad, &robot_keypad, &robot_keypad, &robot_keypad, &robot_keypad, &robot_keypad],
+            &mut cache
+        );
+
+        println!("{cost} * {val}");
+
+        part02 += val * cost;
+    }
+
+    println!("part 02: {}", part02);
 }
