@@ -1,5 +1,7 @@
+use rayon::prelude::*;
 use std::cmp::max;
 use std::collections::{HashMap, HashSet};
+use std::sync::Mutex;
 use std::time::Instant;
 
 macro_rules! read_lines {
@@ -58,20 +60,21 @@ fn main() {
         sequences.push(map);
     }
 
-    let mut marks = HashSet::new();
+    let marks = Mutex::new(HashSet::new());
     let mut part02 = 0;
 
     for (idx, map) in sequences.iter().enumerate() {
-        for (key, val) in map {
-            if !marks.insert(key) {
-                continue;
-            }
+        let res = map.par_iter()
+            .filter(|(&key, _)| marks.lock().unwrap().insert(key))
+            .map(|(key, val)| {
+                val + sequences[idx + 1..].iter()
+                    .filter_map(|m| m.get(key))
+                    .sum::<u64>()
+            })
+            .max();
 
-            let sum = val + sequences[idx + 1..].iter()
-                .filter_map(|m| m.get(key))
-                .sum::<u64>();
-
-            part02 = max(sum, part02);
+        if let Some(res) = res {
+            part02 = max(res, part02);
         }
     }
 
