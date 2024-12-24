@@ -1,0 +1,6 @@
+fdv <> dbp
+z15 <> ckj
+z23 <> kdf
+z39 <> rpp
+
+ckj,dbp,fdv,kdf,rpp,z15,z23,z39

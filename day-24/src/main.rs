@@ -1,4 +1,6 @@
+use std::cmp::{max, min};
 use std::collections::{HashMap, VecDeque};
+use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 use std::time::Instant;
 
@@ -27,6 +29,16 @@ impl LogicOperator {
     }
 }
 
+impl Display for LogicOperator {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LogicOperator::And => write!(f, "&"),
+            LogicOperator::Or => write!(f, "|"),
+            LogicOperator::Xor => write!(f, "^")
+        }
+    }
+}
+
 impl FromStr for LogicOperator {
     type Err = ();
 
@@ -45,6 +57,25 @@ struct LogicGate {
     operator: LogicOperator,
     inputs: [String; 2],
     output: String,
+}
+
+fn build_expr(wire: String, gates: &Vec<LogicGate>, depth: u32) -> String {
+    if depth == 0 {
+        return wire;
+    }
+
+    let producer = gates.iter()
+        .find(|g| g.output == wire);
+
+    if let Some(producer) = producer {
+        let lhs = build_expr(producer.inputs[0].clone(), gates, depth - 1);
+        let rhs = build_expr(producer.inputs[1].clone(), gates, depth - 1);
+        let expr = format!("({} {} {}){}", min(&lhs, &rhs).clone(), producer.operator, max(lhs, rhs), wire);
+
+        expr
+    } else {
+        wire
+    }
 }
 
 fn main() {
@@ -87,33 +118,41 @@ fn main() {
             if !wires.contains_key(&out) { wires.insert(out, None); }
         }
     }
-    
+
     // Part 01
     let now = Instant::now();
-    
+
     let mut stack = VecDeque::from_iter(gates.iter().cloned());
-    
+
     while let Some(gate) = stack.pop_front() {
         // Already computed
         if wires.get(&gate.output).unwrap().is_some() {
             continue;
         }
-        
+
         let inputs = gate.inputs.map(|wire| wires.get(&wire).unwrap());
-        
+
         if inputs.iter().all(|opt| opt.is_some()) {
             let [lhs, rhs] = inputs.map(|opt| opt.unwrap());
             wires.insert(gate.output.clone(), Some(gate.operator.apply(lhs, rhs)));
             stack.extend(gates.iter().filter(|g| g.inputs.contains(&gate.output)).cloned());
         }
     }
-    
+
     let mut part01: u64 = 0;
-    
+
     for (wire, _) in wires.iter().filter(|(k, v)| k.starts_with('z') && v.unwrap()) {
         let n = wire[1..].parse::<u64>().unwrap();
         part01 |= 1 << n;
     }
-    
+
     println!("part 01: {} ({:.2?})", part01, now.elapsed());
+
+    // Part 02
+    for i in 0..=45 {
+        let wire = format!("z{:>02}", i);
+        let expr = build_expr(wire.clone(), &gates, 3);
+
+        println!("{} = {}", wire, &expr[1..expr.len() - 4]);
+    }
 }
